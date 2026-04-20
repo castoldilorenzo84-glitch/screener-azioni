@@ -1,0 +1,25 @@
+# Secrets — NON caricare mai su GitHub
+.streamlit/secrets.toml
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# Ambienti virtuali
+venv/
+env/
+.env/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Dati locali temporanei
+*.csv
+*.log
