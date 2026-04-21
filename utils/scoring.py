@@ -187,33 +187,26 @@ def _zscore_settore_neutro(df: pd.DataFrame, col: str, invert: bool = False) -> 
 # SHARPE / SORTINO
 # ══════════════════════════════════════════════
 
-def calc_sharpe(ret_12m: Optional[float], vol_ann: Optional[float],
-                risk_free: float = 0.045) -> Optional[float]:
-    """
-    Sharpe Ratio semplificato: (Ret12M - RiskFree) / VolAnn.
-    Risk free default = 4.5% (approssimazione Treasury USA 2025).
-    """
-    if ret_12m is None or vol_ann is None or vol_ann <= 0:
-        return None
+def calc_sharpe(ret_12m, vol_ann, risk_free: float = 0.045) -> Optional[float]:
     try:
-        return round((float(ret_12m) - risk_free) / float(vol_ann), 3)
-    except Exception:
+        r = float(ret_12m)
+        v = float(vol_ann)
+        if v <= 0 or r != r or v != v:   # NaN check: NaN != NaN
+            return None
+        return round((r - risk_free) / v, 3)
+    except (TypeError, ValueError):
         return None
 
 
-def calc_sortino(ret_12m: Optional[float], vol_ann: Optional[float],
-                 risk_free: float = 0.045) -> Optional[float]:
-    """
-    Sortino Ratio approssimato: (Ret12M - RiskFree) / (VolAnn * 0.7).
-    Il downside deviation è approssimato come ~70% della vol totale.
-    Per calcolo preciso servirebbero i rendimenti giornalieri.
-    """
-    if ret_12m is None or vol_ann is None or vol_ann <= 0:
-        return None
+def calc_sortino(ret_12m, vol_ann, risk_free: float = 0.045) -> Optional[float]:
     try:
-        downside_vol = float(vol_ann) * 0.70
-        return round((float(ret_12m) - risk_free) / downside_vol, 3)
-    except Exception:
+        r = float(ret_12m)
+        v = float(vol_ann)
+        if v <= 0 or r != r or v != v:
+            return None
+        downside_vol = v * 0.70
+        return round((r - risk_free) / downside_vol, 3)
+    except (TypeError, ValueError):
         return None
 
 
@@ -253,11 +246,21 @@ def compute_watchlist_scores(
     df["z_pe"]     = fn(df, "pe",            invert=True)
     df["z_div"]    = fn(df, "div_yield",     invert=False)
 
+    # ── Fair Value rapido e scostamento ───────────────────────
+    # Calcola un FV veloce (P/E × PE_settore medio) senza chiamate API
+    # Usato come fattore bonus nell'score e visibile nella tabella Watchlist
+    df["fv_quick"]    = df.apply(_calc_fv_quick, axis=1)
+    df["fv_discount"] = df.apply(
+        lambda r: _calc_fv_discount(r.get("prezzo"), r.get("fv_quick")), axis=1
+    )
+    # z-score del discount: chi è più sottostimato riceve bonus positivo
+    df["z_fv"] = zscore_series(
+        pd.to_numeric(df["fv_discount"], errors="coerce"), invert=False
+    )
+
     # ── Sharpe e Sortino ──────────────────────────────────────
     df["sharpe"]  = df.apply(lambda r: calc_sharpe(r.get("ret_12m"), r.get("vol_ann")), axis=1)
     df["sortino"] = df.apply(lambda r: calc_sortino(r.get("ret_12m"), r.get("vol_ann")), axis=1)
-
-    # Z-score anche per Sharpe (bonus aggiuntivo, non entra nei pesi principali)
     df["z_sharpe"] = zscore_series(pd.to_numeric(df["sharpe"], errors="coerce"))
 
     # ── Score composito ───────────────────────────────────────
@@ -271,8 +274,8 @@ def compute_watchlist_scores(
         df["z_pe"]     * w.get("pe_inv",  0.10) +
         df["z_div"]    * w.get("div_yld", 0.10)
     )
-    # Bonus Sharpe: piccolo contributo aggiuntivo (+5% peso)
-    df["score"] = df["score"] + df["z_sharpe"] * 0.05
+    # Bonus Sharpe (+5%) e bonus FV discount (+8%)
+    df["score"] = df["score"] + df["z_sharpe"] * 0.05 + df["z_fv"] * 0.08
     df["score"] = df["score"].round(4)
 
     # ── Rank, Tier, Percentile ────────────────────────────────
@@ -305,6 +308,58 @@ def _classify_tier(row: pd.Series) -> str:
     if cond_alta:  return "Alta"
     if cond_bassa: return "Bassa"
     return "Media"
+
+
+# P/E medi per settore (stesso dict di price_targets.py)
+_PE_SETTORE = {
+    "Technology": 28.0, "Healthcare": 22.0, "Financials": 12.0,
+    "Consumer Discretionary": 24.0, "Consumer Staples": 21.0,
+    "Energy": 14.0, "Industrials": 20.0, "Materials": 17.0,
+    "Utilities": 18.0, "Real Estate": 35.0, "Communication": 22.0,
+}
+
+def _calc_fv_quick(row: pd.Series) -> Optional[float]:
+    """
+    Fair Value rapido basato solo su P/E × PE_settore.
+    Usato come proxy veloce per il bonus FV nello score Watchlist.
+    """
+    def _n(v):
+        try:
+            f = float(v)
+            return None if f != f else f
+        except (TypeError, ValueError):
+            return None
+
+    pe     = _n(row.get("pe"))
+    prezzo = _n(row.get("prezzo"))
+    settore = str(row.get("settore", "") or "")
+
+    if pe is None or pe <= 0 or prezzo is None or prezzo <= 0:
+        return None
+
+    # EPS implicito = prezzo / P/E corrente
+    eps = prezzo / pe
+    pe_settore = next(
+        (v for k, v in _PE_SETTORE.items() if k.lower() in settore.lower()),
+        20.0
+    )
+    fv = eps * pe_settore
+    return round(fv, 4) if fv > 0 else None
+
+
+def _calc_fv_discount(prezzo, fv_quick) -> Optional[float]:
+    """
+    Scostamento percentuale: (FV - Prezzo) / Prezzo
+    Positivo = sottostimato, Negativo = sovrastimato
+    """
+    try:
+        p = float(prezzo)
+        f = float(fv_quick)
+        if p <= 0 or f <= 0 or p != p or f != f:
+            return None
+        return round((f - p) / p, 4)
+    except (TypeError, ValueError):
+        return None
 
 
 
@@ -459,76 +514,3 @@ def zscore_series(series: pd.Series, invert: bool = False) -> pd.Series:
     return z.clip(-ZSCORE_CAP, ZSCORE_CAP).fillna(0)
 
 
-def compute_watchlist_scores(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Calcola z-score per ogni fattore e score composito pesato.
-    Input: DataFrame con colonne metriche (prezzo, ret_6m, ret_12m, vol_ann, pe, roe, de_ratio, gross_margin, div_yield)
-    Output: DataFrame con colonne z_*, score, rank, tier aggiunte.
-    """
-    df = df.copy()
-    w = SCORING_WEIGHTS
-
-    # Z-scores per ogni fattore
-    df["z_mom6m"]   = zscore_series(pd.to_numeric(df.get("ret_6m",   pd.Series(dtype=float)), errors="coerce"), invert=False)
-    df["z_mom12m"]  = zscore_series(pd.to_numeric(df.get("ret_12m",  pd.Series(dtype=float)), errors="coerce"), invert=False)
-    df["z_roe"]     = zscore_series(pd.to_numeric(df.get("roe",      pd.Series(dtype=float)), errors="coerce"), invert=False)
-    df["z_de"]      = zscore_series(pd.to_numeric(df.get("de_ratio", pd.Series(dtype=float)), errors="coerce"), invert=True)   # inverso
-    df["z_margin"]  = zscore_series(pd.to_numeric(df.get("gross_margin", pd.Series(dtype=float)), errors="coerce"), invert=False)
-    df["z_lowvol"]  = zscore_series(pd.to_numeric(df.get("vol_ann",  pd.Series(dtype=float)), errors="coerce"), invert=True)   # inverso
-    df["z_pe"]      = zscore_series(pd.to_numeric(df.get("pe",       pd.Series(dtype=float)), errors="coerce"), invert=True)   # inverso
-    df["z_div"]     = zscore_series(pd.to_numeric(df.get("div_yield",pd.Series(dtype=float)), errors="coerce"), invert=False)
-
-    # Score composito pesato
-    df["score"] = (
-        df["z_mom6m"]  * w["mom_6m"]  +
-        df["z_mom12m"] * w["mom_12m"] +
-        df["z_roe"]    * w["roe"]     +
-        df["z_de"]     * w["de_inv"]  +
-        df["z_margin"] * w["margin"]  +
-        df["z_lowvol"] * w["lowvol"]  +
-        df["z_pe"]     * w["pe_inv"]  +
-        df["z_div"]    * w["div_yld"]
-    )
-    df["score"] = df["score"].round(4)
-
-    # Rank
-    df["rank"] = df["score"].rank(ascending=False, method="min").astype(int)
-
-    # Tier
-    df["tier"] = df.apply(_classify_tier, axis=1)
-
-    # Percentile rispetto alla watchlist
-    df["percentile"] = (df["score"].rank(pct=True) * 100).round(0).astype(int)
-
-    return df
-
-
-def _classify_tier(row: pd.Series) -> str:
-    """Classifica tier di affidabilità del segnale."""
-    # Conta dati mancanti nei campi fondamentali
-    key_fields = ["ret_6m", "ret_12m", "vol_ann", "pe", "roe", "de_ratio", "gross_margin"]
-    missing = sum(1 for f in key_fields if pd.isna(row.get(f)))
-
-    mktcap  = row.get("mktcap_M", 0) or 0
-    vol_ann = row.get("vol_ann", 1) or 1
-    ret_12m = row.get("ret_12m", 0)
-    if ret_12m is None:
-        ret_12m = 0
-
-    cond_alta = (
-        missing == 0 and
-        mktcap >= MCAP_MIN_M and
-        vol_ann <= VOL_MAX_PCT and
-        ret_12m >= RET12M_MIN
-    )
-    cond_bassa = (
-        missing >= 3 or
-        mktcap < MCAP_MIN_M * 0.5 or
-        vol_ann > VOL_MAX_PCT * 1.5
-    )
-
-    if cond_alta:
-        return "Alta"
-    if cond_bassa:
-        return "Bassa"
-    return "Media"

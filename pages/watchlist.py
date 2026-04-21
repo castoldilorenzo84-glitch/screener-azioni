@@ -122,31 +122,40 @@ if df is not None and not df.empty:
     display["tier_badge"] = display["tier"].map(_tier_badge)
 
     show_cols = ["rank", "ticker", "nome", "settore", "mktcap_M",
-                 "prezzo", "ret_6m", "ret_12m", "vol_ann",
+                 "prezzo", "fv_quick", "fv_discount",
+                 "ret_6m", "ret_12m", "vol_ann",
                  "pe", "roe", "gross_margin", "de_ratio", "div_yield",
-                 "score", "percentile", "tier_badge"]
+                 "score", "percentile", "tier_badge", "sharpe", "sortino"]
 
     # Colonne disponibili
     show_cols = [c for c in show_cols if c in display.columns]
 
     col_config = {
-        "rank":        st.column_config.NumberColumn("Rank", width="small"),
-        "ticker":      st.column_config.TextColumn("Ticker", width="small"),
-        "nome":        st.column_config.TextColumn("Nome", width="medium"),
-        "settore":     st.column_config.TextColumn("Settore", width="medium"),
-        "mktcap_M":    st.column_config.NumberColumn("MktCap $M", format="$%,.0f", width="small"),
-        "prezzo":      st.column_config.NumberColumn("Prezzo", format="$%.2f", width="small"),
-        "ret_6m":      st.column_config.NumberColumn("Ret 6M%", format="%.1f%%", width="small"),
-        "ret_12m":     st.column_config.NumberColumn("Ret 12M%", format="%.1f%%", width="small"),
-        "vol_ann":     st.column_config.NumberColumn("Vol%", format="%.1f%%", width="small"),
-        "pe":          st.column_config.NumberColumn("P/E", format="%.1f", width="small"),
-        "roe":         st.column_config.NumberColumn("ROE%", format="%.1f%%", width="small"),
-        "gross_margin":st.column_config.NumberColumn("Margin%", format="%.1f%%", width="small"),
-        "de_ratio":    st.column_config.NumberColumn("D/E", format="%.2f", width="small"),
-        "div_yield":   st.column_config.NumberColumn("Div%", format="%.2f%%", width="small"),
-        "score":       st.column_config.NumberColumn("Score", format="%.3f", width="small"),
-        "percentile":  st.column_config.ProgressColumn("Percentile", min_value=0, max_value=100, width="small"),
-        "tier_badge":  st.column_config.TextColumn("Tier", width="small"),
+        "rank":         st.column_config.NumberColumn("Rank", width="small"),
+        "ticker":       st.column_config.TextColumn("Ticker", width="small"),
+        "nome":         st.column_config.TextColumn("Nome", width="medium"),
+        "settore":      st.column_config.TextColumn("Settore", width="medium"),
+        "mktcap_M":     st.column_config.NumberColumn("MktCap $M", format="$%,.0f", width="small"),
+        "prezzo":       st.column_config.NumberColumn("Prezzo", format="$%.2f", width="small"),
+        "fv_quick":     st.column_config.NumberColumn("Fair Value", format="$%.2f", width="small",
+                            help="Fair Value rapido basato su P/E × media settore"),
+        "fv_discount":  st.column_config.NumberColumn("FV Disc%", format="%.1f%%", width="small",
+                            help="+% = sottostimato vs Fair Value. -% = sovrastimato"),
+        "ret_6m":       st.column_config.NumberColumn("Ret 6M%", format="%.1f%%", width="small"),
+        "ret_12m":      st.column_config.NumberColumn("Ret 12M%", format="%.1f%%", width="small"),
+        "vol_ann":      st.column_config.NumberColumn("Vol%", format="%.1f%%", width="small"),
+        "pe":           st.column_config.NumberColumn("P/E", format="%.1f", width="small"),
+        "roe":          st.column_config.NumberColumn("ROE%", format="%.1f%%", width="small"),
+        "gross_margin": st.column_config.NumberColumn("Margin%", format="%.1f%%", width="small"),
+        "de_ratio":     st.column_config.NumberColumn("D/E", format="%.2f", width="small"),
+        "div_yield":    st.column_config.NumberColumn("Div%", format="%.2f%%", width="small"),
+        "score":        st.column_config.NumberColumn("Score", format="%.3f", width="small"),
+        "percentile":   st.column_config.ProgressColumn("Percentile", min_value=0, max_value=100, width="small"),
+        "tier_badge":   st.column_config.TextColumn("Tier", width="small"),
+        "sharpe":       st.column_config.NumberColumn("Sharpe", format="%.2f", width="small",
+                            help="(Ret12M - 4.5%) / Vol. >1=buono, >2=ottimo"),
+        "sortino":      st.column_config.NumberColumn("Sortino", format="%.2f", width="small",
+                            help="Come Sharpe ma penalizza solo la volatilità negativa"),
     }
 
     st.dataframe(

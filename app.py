@@ -71,14 +71,16 @@ _init_state()
 
 # ── Navigazione ──────────────────────────────────────────
 pg = st.navigation([
-    st.Page("pages/universe.py",     title="🌍 Universe",         icon="🌍", default=True),
-    st.Page("pages/watchlist.py",    title="📋 Watchlist",        icon="📋"),
-    st.Page("pages/dashboard.py",    title="🏆 Dashboard",        icon="🏆"),
-    st.Page("pages/storico.py",      title="📈 Storico Prezzi",   icon="📈"),
-    st.Page("pages/dividendi.py",    title="💰 Dividendi",        icon="💰"),
-    st.Page("pages/preferiti.py",    title="⭐ Preferiti",        icon="⭐"),
-    st.Page("pages/paper_trading.py",title="📊 Paper Trading",    icon="📊"),
-    st.Page("pages/ml_insights.py",  title="🧠 ML Insights",      icon="🧠"),
-    st.Page("pages/notifiche.py",    title="🔔 Notifiche",        icon="🔔"),
+    st.Page("pages/universe.py",       title="🌍 Universe",          icon="🌍", default=True),
+    st.Page("pages/diamond_hunter.py", title="💎 Diamond Hunter",    icon="💎"),
+    st.Page("pages/watchlist.py",      title="📋 Watchlist",         icon="📋"),
+    st.Page("pages/dashboard.py",      title="🏆 Dashboard",         icon="🏆"),
+    st.Page("pages/price_targets.py",  title="🎯 Price Targets",     icon="🎯"),
+    st.Page("pages/storico.py",        title="📈 Storico Prezzi",    icon="📈"),
+    st.Page("pages/dividendi.py",      title="💰 Dividendi",         icon="💰"),
+    st.Page("pages/preferiti.py",      title="⭐ Preferiti",         icon="⭐"),
+    st.Page("pages/paper_trading.py",  title="📊 Paper Trading",     icon="📊"),
+    st.Page("pages/ml_insights.py",    title="🧠 ML Insights",       icon="🧠"),
+    st.Page("pages/notifiche.py",      title="🔔 Notifiche",         icon="🔔"),
 ])
 pg.run()
