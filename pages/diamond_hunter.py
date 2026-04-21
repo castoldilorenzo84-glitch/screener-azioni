@@ -212,6 +212,10 @@ with col3:
     st.write("")
     btn = st.button("🔍 Cerca Diamanti", type="primary", use_container_width=True)
 
+# Avviso per indici grandi
+if "Russell" in indice:
+    st.warning("⚠️ Russell 2000 contiene 200 ticker — l'analisi richiede 3-5 minuti. Considera di usare S&P 500 o Dow Jones per una ricerca più rapida.")
+
 # ── Filtri avanzati ───────────────────────────────────────────
 with st.expander("⚙️ Filtri avanzati", expanded=False):
     fc1, fc2, fc3, fc4 = st.columns(4)

@@ -387,6 +387,9 @@ def fetch_universe_data(tickers_df: pd.DataFrame, progress_cb=None) -> pd.DataFr
             df[col] = np.nan
 
     if not fund.empty:
+        # Deduplica l'indice per evitare ValueError in reindex
+        fund = fund[~fund.index.duplicated(keep="first")]
+        df   = df[~df.index.duplicated(keep="first")]
         for col in ["mktcap_M", "pe", "roe", "de_ratio"]:
             if col in fund.columns:
                 df[col] = fund[col].reindex(df.index)

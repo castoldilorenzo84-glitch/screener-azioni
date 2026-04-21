@@ -29,14 +29,14 @@ RET12M_MIN  = -0.30     # Rendimento 12M minimo per tier "Alta"
 
 PREFILTER = {
     "verde": {
-        "pe_min": 5, "pe_max": 25,
+        "pe_min": 5, "pe_max": 35,
         "roe_min": 0.08,
         "de_max": 1.5,
         "mom6m_min": 0.0,
         "mcap_min_M": 2000,
     },
     "rosso": {
-        "pe_max_abs": 50,       # P/E > 50 o negativo
+        "pe_max_abs": 60,       # P/E > 60 o negativo
         "roe_min_abs": 0.0,     # ROE negativo
         "de_max_abs": 3.0,      # D/E > 3
         "ret12m_min_abs": -0.30,# Crollo > 30%
