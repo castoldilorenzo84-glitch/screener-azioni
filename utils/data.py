@@ -314,34 +314,70 @@ def compute_price_metrics(prices: pd.DataFrame) -> pd.DataFrame:
 # ══════════════════════════════════════════════
 
 def _fetch_single_info(ticker: str) -> dict:
-    """Fetch yfinance info per un singolo ticker. Usata in parallelo."""
+    """Fetch fondamentali per un singolo ticker — prova FMP poi yfinance."""
+    empty = {"ticker": ticker, "nome": ticker, "settore": "N/A",
+             "mktcap_M": None, "pe": None, "roe": None,
+             "de_ratio": None, "gross_margin": None}
+
+    # ── Prova FMP prima (più affidabile) ──────────────────────
+    key = get_fmp_key()
+    if key:
+        try:
+            profile = fmp_get(f"profile/{ticker}")
+            ratios  = fmp_get(f"ratios-ttm/{ticker}")
+            if profile and isinstance(profile, list) and profile:
+                p = profile[0]
+                empty["nome"]      = p.get("companyName", ticker)
+                empty["settore"]   = p.get("sector", "N/A") or "N/A"
+                empty["mktcap_M"]  = (p.get("mktCap") or 0) / 1e6
+            if ratios and isinstance(ratios, list) and ratios:
+                r = ratios[0]
+                empty["pe"]           = r.get("peRatioTTM")
+                empty["roe"]          = r.get("returnOnEquityTTM")
+                empty["de_ratio"]     = r.get("debtEquityRatioTTM")
+                empty["gross_margin"] = r.get("grossProfitMarginTTM")
+            # Se FMP ha dato i fondamentali chiave, ritorna
+            if empty["pe"] is not None or empty["roe"] is not None:
+                return empty
+        except Exception:
+            pass
+
+    # ── Fallback yfinance ─────────────────────────────────────
     try:
         info = yf.Ticker(ticker).info
-        return {
-            "ticker":    ticker,
-            "nome":      info.get("longName") or info.get("shortName", ticker),
-            "settore":   info.get("sector", "N/A"),
-            "mktcap_M":  (info.get("marketCap") or 0) / 1e6,
-            "pe":        info.get("trailingPE") or info.get("forwardPE"),
-            "roe":       info.get("returnOnEquity"),
-            "de_ratio":  (info.get("debtToEquity") or 0) / 100,
-        }
+        if not info or len(info) < 5:
+            return empty
+        empty["nome"]         = info.get("longName") or info.get("shortName", ticker)
+        empty["settore"]      = info.get("sector", "N/A") or "N/A"
+        empty["mktcap_M"]     = (info.get("marketCap") or 0) / 1e6
+        empty["pe"]           = info.get("trailingPE") or info.get("forwardPE")
+        empty["roe"]          = info.get("returnOnEquity")
+        de = info.get("debtToEquity")
+        empty["de_ratio"]     = (de / 100) if de else None
+        empty["gross_margin"] = info.get("grossMargins")
     except Exception:
-        return {"ticker": ticker, "nome": ticker, "settore": "N/A",
-                "mktcap_M": None, "pe": None, "roe": None, "de_ratio": None}
+        pass
+
+    return empty
 
 
 @st.cache_data(ttl=14400, show_spinner=False)
-def fetch_fundamentals_batch(tickers: tuple, max_workers: int = 20) -> pd.DataFrame:
+def fetch_fundamentals_batch(tickers: tuple, max_workers: int = 25) -> pd.DataFrame:
     """
-    Fetch fondamentali (P/E, ROE, D/E, mktcap) in parallelo.
-    Limitare a max 150 ticker per evitare timeout.
+    Fetch fondamentali (P/E, ROE, D/E, mktcap, gross_margin) in parallelo.
+    Usa FMP quando disponibile, yfinance come fallback.
+    Nessun limite sul numero di ticker.
     """
+    if not tickers:
+        return pd.DataFrame()
     results = []
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(_fetch_single_info, t): t for t in tickers}
         for future in as_completed(futures):
-            results.append(future.result())
+            try:
+                results.append(future.result())
+            except Exception:
+                pass
     df = pd.DataFrame(results)
     if df.empty:
         return pd.DataFrame()
@@ -368,10 +404,10 @@ def fetch_universe_data(tickers_df: pd.DataFrame, progress_cb=None) -> pd.DataFr
     prices = fetch_prices_batch(tuple(tickers))
     metrics = compute_price_metrics(prices) if not prices.empty else pd.DataFrame()
 
-    # Step 2: fondamentali (parallelo, max 150)
+    # Step 2: fondamentali (parallelo, tutti i ticker)
     if progress_cb:
         progress_cb(0.4, "Caricamento dati fondamentali...")
-    fund = fetch_fundamentals_batch(tuple(tickers[:150]))
+    fund = fetch_fundamentals_batch(tuple(tickers))
 
     # Step 3: merge
     if progress_cb:
@@ -390,7 +426,7 @@ def fetch_universe_data(tickers_df: pd.DataFrame, progress_cb=None) -> pd.DataFr
         # Deduplica l'indice per evitare ValueError in reindex
         fund = fund[~fund.index.duplicated(keep="first")]
         df   = df[~df.index.duplicated(keep="first")]
-        for col in ["mktcap_M", "pe", "roe", "de_ratio"]:
+        for col in ["mktcap_M", "pe", "roe", "de_ratio", "gross_margin"]:
             if col in fund.columns:
                 df[col] = fund[col].reindex(df.index)
             else:
@@ -403,7 +439,7 @@ def fetch_universe_data(tickers_df: pd.DataFrame, progress_cb=None) -> pd.DataFr
             mask = fund["settore"].notna() & (fund["settore"] != "N/A")
             df.loc[mask[mask].index, "settore"] = fund.loc[mask[mask].index, "settore"]
     else:
-        for col in ["mktcap_M", "pe", "roe", "de_ratio"]:
+        for col in ["mktcap_M", "pe", "roe", "de_ratio", "gross_margin"]:
             if col not in df.columns:
                 df[col] = np.nan
 
