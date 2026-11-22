@@ -1,0 +1,260 @@
+# Esempio: schermata modulo "Nuova richiesta" (Studio in italiano, separatori ;).
+# Campi costruiti con etichette e controlli (non con un Form), salvataggio con Patch.
+# Incolla su una schermata vuota chiamata scrNuovaRichiesta (Fill: =Colori.Sfondo).
+- conModuloRadice:
+    Control: GroupContainer
+    Variant: AutoLayout
+    Properties:
+      X: =0
+      Y: =0
+      Width: =Parent.Width
+      Height: =Parent.Height
+      LayoutDirection: =LayoutDirection.Vertical
+      Fill: =Colori.Sfondo
+    Children:
+      - conModuloIntestazione:
+          Control: GroupContainer
+          Variant: AutoLayout
+          Properties:
+            Height: =56
+            FillPortions: =0
+            AlignInContainer: =AlignInContainer.Stretch
+            LayoutDirection: =LayoutDirection.Horizontal
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutGap: =Spazio.S
+            PaddingLeft: =Spazio.S
+            PaddingRight: =Spazio.L
+            Fill: =Colori.Sfondo
+          Children:
+            - icoModuloIndietro:
+                Control: Classic/Icon
+                Properties:
+                  Icon: =Icon.ChevronLeft
+                  Color: =Colori.Testo
+                  AccessibleLabel: ="Indietro"
+                  OnSelect: =Back()
+                  Width: =40
+                  Height: =40
+                  PaddingTop: =10
+                  PaddingBottom: =10
+                  PaddingLeft: =10
+                  PaddingRight: =10
+                  FillPortions: =0
+            - lblModuloTitolo:
+                Control: Label
+                Properties:
+                  Text: ="Nuova richiesta"
+                  Font: =Font.'Segoe UI'
+                  Size: =Carattere.Titolo
+                  FontWeight: =FontWeight.Semibold
+                  Color: =Colori.Testo
+                  FillPortions: =1
+                  Height: =40
+      - recModuloDivisore:
+          Control: Rectangle
+          Properties:
+            Height: =1
+            FillPortions: =0
+            AlignInContainer: =AlignInContainer.Stretch
+            Fill: =Colori.Bordo
+      - conModuloCampi:
+          Control: GroupContainer
+          Variant: AutoLayout
+          Properties:
+            FillPortions: =1
+            AlignInContainer: =AlignInContainer.Stretch
+            LayoutDirection: =LayoutDirection.Vertical
+            LayoutGap: =Spazio.L
+            PaddingTop: =Spazio.XL
+            PaddingLeft: =Spazio.L
+            PaddingRight: =Spazio.L
+            LayoutOverflowY: =LayoutOverflow.Scroll
+            LayoutMaxWidth: =640
+          Children:
+            - conCampoDate:
+                Control: GroupContainer
+                Variant: AutoLayout
+                Properties:
+                  Height: =64
+                  FillPortions: =0
+                  AlignInContainer: =AlignInContainer.Stretch
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutGap: =Spazio.L
+                Children:
+                  - conCampoInizio:
+                      Control: GroupContainer
+                      Variant: AutoLayout
+                      Properties:
+                        FillPortions: =1
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =Spazio.XS
+                      Children:
+                        - lblCampoInizio:
+                            Control: Label
+                            Properties:
+                              Text: ="Data di inizio"
+                              Font: =Font.'Segoe UI'
+                              Size: =Carattere.Piccolo
+                              Color: =Colori.TestoSecondario
+                              Height: =20
+                              FillPortions: =0
+                              AlignInContainer: =AlignInContainer.Stretch
+                        - dtpInizio:
+                            Control: Classic/DatePicker
+                            Properties:
+                              Format: =DateTimeFormat.ShortDate
+                              Language: ="it-IT"
+                              InputTextPlaceholder: ="es. 24/11/2026"
+                              Font: =Font.'Segoe UI'
+                              Size: =Carattere.Testo
+                              Color: =Colori.Testo
+                              BorderColor: =Colori.BordoCampo
+                              Height: =36
+                              FillPortions: =0
+                              AlignInContainer: =AlignInContainer.Stretch
+                  - conCampoFine:
+                      Control: GroupContainer
+                      Variant: AutoLayout
+                      Properties:
+                        FillPortions: =1
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =Spazio.XS
+                      Children:
+                        - lblCampoFine:
+                            Control: Label
+                            Properties:
+                              Text: ="Data di fine"
+                              Font: =Font.'Segoe UI'
+                              Size: =Carattere.Piccolo
+                              Color: =Colori.TestoSecondario
+                              Height: =20
+                              FillPortions: =0
+                              AlignInContainer: =AlignInContainer.Stretch
+                        - dtpFine:
+                            Control: Classic/DatePicker
+                            Properties:
+                              Format: =DateTimeFormat.ShortDate
+                              Language: ="it-IT"
+                              InputTextPlaceholder: ="es. 28/11/2026"
+                              Font: =Font.'Segoe UI'
+                              Size: =Carattere.Testo
+                              Color: =Colori.Testo
+                              BorderColor: =Colori.BordoCampo
+                              Height: =36
+                              FillPortions: =0
+                              AlignInContainer: =AlignInContainer.Stretch
+            - lblErroreDate:
+                Control: Label
+                Properties:
+                  Text: ="La data di fine non può essere prima della data di inizio."
+                  Visible: =!IsBlank(dtpInizio.SelectedDate) && !IsBlank(dtpFine.SelectedDate) && dtpFine.SelectedDate < dtpInizio.SelectedDate
+                  Font: =Font.'Segoe UI'
+                  Size: =Carattere.Piccolo
+                  Color: =Colori.Errore
+                  Height: =20
+                  FillPortions: =0
+                  AlignInContainer: =AlignInContainer.Stretch
+            - conCampoNote:
+                Control: GroupContainer
+                Variant: AutoLayout
+                Properties:
+                  Height: =124
+                  FillPortions: =0
+                  AlignInContainer: =AlignInContainer.Stretch
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutGap: =Spazio.XS
+                Children:
+                  - lblCampoNote:
+                      Control: Label
+                      Properties:
+                        Text: ="Note per il responsabile (facoltative)"
+                        Font: =Font.'Segoe UI'
+                        Size: =Carattere.Piccolo
+                        Color: =Colori.TestoSecondario
+                        Height: =20
+                        FillPortions: =0
+                        AlignInContainer: =AlignInContainer.Stretch
+                  - txtNote:
+                      Control: Classic/TextInput
+                      Properties:
+                        Default: =""
+                        Mode: =TextMode.MultiLine
+                        Font: =Font.'Segoe UI'
+                        Size: =Carattere.Testo
+                        Color: =Colori.Testo
+                        BorderColor: =Colori.BordoCampo
+                        HoverBorderColor: =Colori.TestoSecondario
+                        FocusedBorderColor: =Colori.Primario
+                        RadiusTopLeft: =Raggio
+                        RadiusTopRight: =Raggio
+                        RadiusBottomLeft: =Raggio
+                        RadiusBottomRight: =Raggio
+                        FillPortions: =1
+                        AlignInContainer: =AlignInContainer.Stretch
+      - conModuloAzioni:
+          Control: GroupContainer
+          Variant: AutoLayout
+          Properties:
+            Height: =64
+            FillPortions: =0
+            AlignInContainer: =AlignInContainer.Stretch
+            LayoutDirection: =LayoutDirection.Horizontal
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutJustifyContent: =LayoutJustifyContent.End
+            LayoutGap: =Spazio.S
+            PaddingLeft: =Spazio.L
+            PaddingRight: =Spazio.L
+            BorderColor: =Colori.Bordo
+          Children:
+            - btnAnnullaRichiesta:
+                Control: Classic/Button
+                Properties:
+                  Text: ="Annulla"
+                  OnSelect: =Back()
+                  Font: =Font.'Segoe UI'
+                  Size: =Carattere.Testo
+                  Fill: =Colori.Sfondo
+                  HoverFill: =Colori.SfondoSecondario
+                  PressedFill: =Colori.Bordo
+                  Color: =Colori.Testo
+                  HoverColor: =Colori.Testo
+                  BorderColor: =Colori.BordoCampo
+                  BorderThickness: =1
+                  RadiusTopLeft: =Raggio
+                  RadiusTopRight: =Raggio
+                  RadiusBottomLeft: =Raggio
+                  RadiusBottomRight: =Raggio
+                  Width: =112
+                  Height: =32
+                  FillPortions: =0
+            - btnInviaRichiesta:
+                Control: Classic/Button
+                Properties:
+                  Text: ="Invia"
+                  DisplayMode: |-
+                    =If(IsBlank(dtpInizio.SelectedDate) || IsBlank(dtpFine.SelectedDate) || lblErroreDate.Visible; DisplayMode.Disabled; DisplayMode.Edit)
+                  OnSelect: |-
+                    =Patch('Richieste ferie'; Defaults('Richieste ferie'); {'Data inizio': dtpInizio.SelectedDate; 'Data fine': dtpFine.SelectedDate; Note: txtNote.Text});;
+                    If(
+                        IsEmpty(Errors('Richieste ferie'));
+                        Notify("Richiesta inviata."; NotificationType.Success);; Back();
+                        Notify("Richiesta non inviata. Riprova; se il problema continua, contatta l'assistenza."; NotificationType.Error)
+                    )
+                  Font: =Font.'Segoe UI'
+                  Size: =Carattere.Testo
+                  FontWeight: =FontWeight.Semibold
+                  Fill: =Colori.Primario
+                  HoverFill: =Colori.PrimarioHover
+                  PressedFill: =Colori.PrimarioPremuto
+                  DisabledFill: =Colori.SfondoSecondario
+                  DisabledColor: =Colori.TestoDisattivato
+                  Color: =Color.White
+                  HoverColor: =Color.White
+                  BorderThickness: =0
+                  RadiusTopLeft: =Raggio
+                  RadiusTopRight: =Raggio
+                  RadiusBottomLeft: =Raggio
+                  RadiusBottomRight: =Raggio
+                  Width: =112
+                  Height: =32
+                  FillPortions: =0
