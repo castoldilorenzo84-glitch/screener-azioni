@@ -1,0 +1,154 @@
+# Esempio: schermata elenco "Le mie richieste" (Studio in italiano, separatori ;).
+# Da adattare al processo: nomi della lista e delle colonne sono di esempio.
+# Incolla su una schermata vuota chiamata scrElencoRichieste (Fill: =Colori.Sfondo).
+- conElencoRadice:
+    Control: GroupContainer
+    Variant: AutoLayout
+    Properties:
+      X: =0
+      Y: =0
+      Width: =Parent.Width
+      Height: =Parent.Height
+      LayoutDirection: =LayoutDirection.Vertical
+      Fill: =Colori.Sfondo
+    Children:
+      - conElencoIntestazione:
+          Control: GroupContainer
+          Variant: AutoLayout
+          Properties:
+            Height: =56
+            FillPortions: =0
+            AlignInContainer: =AlignInContainer.Stretch
+            LayoutDirection: =LayoutDirection.Horizontal
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutGap: =Spazio.M
+            PaddingLeft: =Spazio.L
+            PaddingRight: =Spazio.L
+            Fill: =Colori.Sfondo
+            BorderColor: =Colori.Bordo
+            BorderThickness: =0
+            DropShadow: =DropShadow.None
+          Children:
+            - lblElencoTitolo:
+                Control: Label
+                Properties:
+                  Text: ="Le mie richieste"
+                  Font: =Font.'Segoe UI'
+                  Size: =Carattere.Titolo
+                  FontWeight: =FontWeight.Semibold
+                  Color: =Colori.Testo
+                  FillPortions: =1
+                  Height: =40
+            - btnNuovaRichiesta:
+                Control: Classic/Button
+                Properties:
+                  Text: ="Nuova richiesta"
+                  OnSelect: =Navigate(scrNuovaRichiesta; ScreenTransition.None)
+                  Font: =Font.'Segoe UI'
+                  Size: =Carattere.Testo
+                  FontWeight: =FontWeight.Semibold
+                  Fill: =Colori.Primario
+                  HoverFill: =Colori.PrimarioHover
+                  PressedFill: =Colori.PrimarioPremuto
+                  Color: =Color.White
+                  HoverColor: =Color.White
+                  BorderThickness: =0
+                  RadiusTopLeft: =Raggio
+                  RadiusTopRight: =Raggio
+                  RadiusBottomLeft: =Raggio
+                  RadiusBottomRight: =Raggio
+                  Width: =148
+                  Height: =32
+                  FillPortions: =0
+      - recElencoDivisore:
+          Control: Rectangle
+          Properties:
+            Height: =1
+            FillPortions: =0
+            AlignInContainer: =AlignInContainer.Stretch
+            Fill: =Colori.Bordo
+      - galRichieste:
+          Control: Gallery
+          Variant: Vertical
+          Properties:
+            Items: =Sort(Filter('Richieste ferie'; Richiedente.Email = User().Email); Created; SortOrder.Descending)
+            FillPortions: =1
+            AlignInContainer: =AlignInContainer.Stretch
+            TemplateSize: =64
+            TemplatePadding: =0
+            TemplateFill: =If(ThisItem.IsSelected; Colori.SfondoSecondario; Colori.Sfondo)
+            OnSelect: |-
+              =Navigate(scrDettaglioRichiesta; ScreenTransition.None; {locRichiesta: ThisItem})
+          Children:
+            - lblRigaPeriodo:
+                Control: Label
+                Properties:
+                  Text: |-
+                    ="Ferie " & Text(ThisItem.'Data inizio'; "dd/mm") & "–" & Text(ThisItem.'Data fine'; "dd/mm")
+                  Font: =Font.'Segoe UI'
+                  Size: =Carattere.Testo
+                  FontWeight: =FontWeight.Semibold
+                  Color: =Colori.Testo
+                  X: =Spazio.L
+                  Y: =Spazio.M
+                  Width: =Parent.TemplateWidth - 180
+                  Height: =20
+            - lblRigaDettagli:
+                Control: Label
+                Properties:
+                  Text: |-
+                    =ThisItem.Giorni & " giorni · inviata il " & Text(ThisItem.Created; "dd/mm/yyyy")
+                  Font: =Font.'Segoe UI'
+                  Size: =Carattere.Piccolo
+                  Color: =Colori.TestoSecondario
+                  X: =Spazio.L
+                  Y: =Spazio.M + 22
+                  Width: =Parent.TemplateWidth - 180
+                  Height: =18
+            - lblRigaStato:
+                Control: Label
+                Properties:
+                  Text: =ThisItem.Stato.Value
+                  Font: =Font.'Segoe UI'
+                  Size: =Carattere.Piccolo
+                  Align: =Align.Center
+                  Color: =Switch(ThisItem.Stato.Value; "Approvata"; Colori.Successo; "Rifiutata"; Colori.Errore; Colori.Avviso)
+                  Fill: =Switch(ThisItem.Stato.Value; "Approvata"; Colori.SuccessoSfondo; "Rifiutata"; Colori.ErroreSfondo; Colori.AvvisoSfondo)
+                  X: =Parent.TemplateWidth - 140
+                  Y: =(Parent.TemplateHeight - Self.Height) / 2
+                  Width: =92
+                  Height: =24
+            - icoRigaApri:
+                Control: Classic/Icon
+                Properties:
+                  Icon: =Icon.ChevronRight
+                  Color: =Colori.TestoSecondario
+                  AccessibleLabel: ="Apri richiesta"
+                  X: =Parent.TemplateWidth - 40
+                  Y: =(Parent.TemplateHeight - Self.Height) / 2
+                  Width: =24
+                  Height: =24
+                  PaddingTop: =4
+                  PaddingBottom: =4
+                  PaddingLeft: =4
+                  PaddingRight: =4
+            - recRigaDivisore:
+                Control: Rectangle
+                Properties:
+                  Fill: =Colori.Bordo
+                  X: =Spazio.L
+                  Y: =Parent.TemplateHeight - 1
+                  Width: =Parent.TemplateWidth - Spazio.L
+                  Height: =1
+      - lblElencoVuoto:
+          Control: Label
+          Properties:
+            Text: ="Nessuna richiesta. Per crearne una, seleziona «Nuova richiesta»."
+            Visible: =IsEmpty(galRichieste.AllItems)
+            Font: =Font.'Segoe UI'
+            Size: =Carattere.Testo
+            Color: =Colori.TestoSecondario
+            Align: =Align.Center
+            AlignInContainer: =AlignInContainer.Stretch
+            FillPortions: =0
+            Height: =80
